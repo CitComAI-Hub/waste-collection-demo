@@ -1,5 +1,8 @@
 .env
-wallet-identity/
+.git
+venv/
 __pycache__/
 *.pyc
-.git
+wallet-identity/
+flask-app.yaml
+deploy/

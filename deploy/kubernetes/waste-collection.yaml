@@ -1,0 +1,101 @@
+# MIAIS Waste Collection as a consumer of the CitCom data space: it reads the
+# WasteContainer entities of townhall-vlc with a token of vrain's credential.
+# Secrets (create them first, see README): waste-collection-secrets with
+# DS_PASSWORD and OPENROUTESERVICE_API_KEY.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: waste-collection-config
+  namespace: vrain
+data:
+  NGSI_LD_URL: "https://apisix-townhall-vlc.citcom-vrain-dataspace.eu"
+  WASTE_CONTAINER_LIMIT: "60"
+  DS_ISSUER_URL: "https://keycloak-vrain.citcom-vrain-dataspace.eu/realms/provider"
+  DS_USERNAME: "machine1"
+  DS_VERIFIER_URL: "https://verifier-townhall-vlc.citcom-vrain-dataspace.eu/services/machine-id"
+  DS_SCOPE: "operator1"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: waste-collection
+  namespace: vrain
+  labels:
+    app: waste-collection
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: waste-collection
+  template:
+    metadata:
+      labels:
+        app: waste-collection
+    spec:
+      containers:
+        - name: waste-collection
+          image: ghcr.io/citcomai-hub/waste-collection-demo:v1.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 5000
+          envFrom:
+            - configMapRef:
+                name: waste-collection-config
+            - secretRef:
+                name: waste-collection-secrets
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 30
+          resources:
+            requests:
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: waste-collection
+  namespace: vrain
+spec:
+  selector:
+    app: waste-collection
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+# Public UI. Adapt the host, ingress class and issuer to the cluster.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: waste-collection
+  namespace: vrain
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - waste-collection-vrain.citcom-vrain-dataspace.eu
+      secretName: waste-collection-vrain.citcom-vrain-dataspace.eu-tls
+  rules:
+    - host: waste-collection-vrain.citcom-vrain-dataspace.eu
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: waste-collection
+                port:
+                  name: http

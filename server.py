@@ -1,14 +1,25 @@
-import os
-from services.Optimization import Optimization
-from services.auth_oidc import get_access_token_oid4vp
 import json
-import requests
+import logging
+from services.Optimization import Optimization
+from services.DataSource import DataSource
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+
+logging.basicConfig(level=logging.INFO)
 
 # Init flask server
 app = Flask(__name__)
 CORS(app)
+
+# Data of the provider (NGSI-LD broker or data space connector)
+data_source = DataSource()
+
+
+@app.errorhandler(Exception)
+def data_error(error):
+    # Data space or broker failures (e.g. the consumer is not allowed yet)
+    app.logger.exception("Request failed")
+    return jsonify({"error": str(error)}), 502
 
 
 # Serve frontend
@@ -17,10 +28,15 @@ def home():
     return app.send_static_file("index.html")
 
 
+@app.route("/healthz")
+def healthz():
+    return {"status": "ok"}
+
+
 # API REST
 @app.route("/wastecontainers")
 def waste_containers():
-    containers = get_all_WasteContainers()
+    containers = data_source.waste_containers()
     return containers
 
 
@@ -48,27 +64,6 @@ def optimization():
 
 
 # Data functions
-def get_all_WasteContainers():
-    # Get OID4VC/VP access token
-    keycloak_url = os.environ.get("KEYCLOAK_URL", "http://keycloak-consumer.63.33.94.64.nip.io")
-    credential_configuration_id = os.environ.get("CREDENTIAL_CONFIGURATION_ID", "operator-credential")
-    mp_data_service_url = os.environ.get("MP_DATA_SERVICE_URL", "http://mp-data-service.54.155.89.222.nip.io")
-    
-    access_token = get_access_token_oid4vp(keycloak_url, credential_configuration_id)
-
-    # Data endpoint
-    url = f"{mp_data_service_url}/ngsi-ld/v1/entities?type=WasteContainer"
-    headers = {
-        'Accept': 'application/ld+json',
-        'Authorization': f'Bearer {access_token}',
-        'Fiware-Service': 'tef_vlci',
-        'Fiware-ServicePath': '/residuos_contenedores_vlc'
-    }
-    response = requests.get(url, headers=headers)
-    response.raise_for_status()
-    return response.json()
-
-
 def get_trucks():
     # Simulated trucks
     return [

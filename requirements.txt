@@ -1,9 +1,8 @@
-flask
-flask-cors
-requests
-pyjwt
-cryptography
-openrouteservice
-numpy
-folium
-geojson
+flask>=3.0
+flask-cors>=4.0
+gunicorn>=22.0
+openrouteservice>=2.3
+# NGSI-LD client
+filip~=0.8.1
+# Access token of the data space (Level 2)
+ds-consumer-auth @ git+https://github.com/CitComAI-Hub/ds-consumer-auth@v0.1.0
