@@ -13,7 +13,9 @@ It is a demonstrator of the integration levels of an AI service:
 | 2 | A **data space**: the broker of a provider, through its connector | `NGSI_LD_URL` + `DS_*` |
 
 At level 2 the service is a **consumer** of the data space. In the CitCom data space it runs as a service of **VRAIN** (consumer
-participant) and reads the waste containers of the **València City Council** (`townhall-vlc`, provider), which come from VLCi.
+participant) and reads the waste containers of the **València City Council** (`townhall-vlc`, provider). They come from the VLCi
+platform (NGSI-v2) through [Lepus](https://github.com/CitComAI-Hub/lepus), served by the provider at
+`https://apisix-townhall-vlc.citcom-vrain-dataspace.eu/lepus/ngsi-ld/`.
 
 ## Architecture
 
@@ -64,7 +66,7 @@ with fake data).
 **Level 2 (CitCom data space)**: set in `.env`
 
 ```bash
-NGSI_LD_URL="https://apisix-townhall-vlc.citcom-vrain-dataspace.eu"
+NGSI_LD_URL="https://apisix-townhall-vlc.citcom-vrain-dataspace.eu/lepus"
 DS_ISSUER_URL="https://keycloak-vrain.citcom-vrain-dataspace.eu/realms/provider"
 DS_USERNAME="machine1"
 DS_PASSWORD="..."
@@ -72,9 +74,16 @@ DS_VERIFIER_URL="https://verifier-townhall-vlc.citcom-vrain-dataspace.eu/service
 DS_SCOPE="operator1"
 ```
 
-The consumer (VRAIN) must have acquired the provider's product in the marketplace first; otherwise the verifier rejects its
-credential and `/wastecontainers` answers `502` with `vp_token: the verifier rejected the credential`. See
-[ds-consumer-auth's troubleshooting](https://github.com/CitComAI-Hub/ds-consumer-auth#troubleshooting).
+Before that, in the data space:
+
+1.  The provider deploys Lepus (`providers/townhall_vlc/lepus` layer of
+    [dataspace-on-upv](https://github.com/CitComAI-Hub/dataspace-on-upv)).
+2.  The provider offers the waste container data in the marketplace (`marketplace.citcom-vrain-dataspace.eu`), with an access
+    policy for `MachineCredential`.
+3.  The consumer (VRAIN) acquires that offering. The provider's contract-management then trusts VRAIN's credentials.
+
+Until the third step the verifier rejects the credential and `/wastecontainers` answers `502` with `vp_token: the verifier
+rejected the credential`. See [ds-consumer-auth's troubleshooting](https://github.com/CitComAI-Hub/ds-consumer-auth#troubleshooting).
 
 ## Docker
 
@@ -116,6 +125,12 @@ kubectl -n vrain rollout status deployment/waste-collection
 ```
 
 Review the host, the ingress class and the cert-manager issuer of the `Ingress` for the target cluster.
+
+## Branches
+
+`master` is the main branch and supports both levels by configuration. Older branches are kept for reference: `mvs-orionld` and
+`mvs-scorpiold` (level 1 with a local broker and fake data), `valencia` (level 1 with the VLCi platform) and `mvds` (first level 2
+version, with a hand-written OID4VP flow).
 
 ## Limitations and TODO
 

@@ -8,7 +8,8 @@ metadata:
   name: waste-collection-config
   namespace: vrain
 data:
-  NGSI_LD_URL: "https://apisix-townhall-vlc.citcom-vrain-dataspace.eu"
+  # VLCi data through Lepus
+  NGSI_LD_URL: "https://apisix-townhall-vlc.citcom-vrain-dataspace.eu/lepus"
   WASTE_CONTAINER_LIMIT: "60"
   DS_ISSUER_URL: "https://keycloak-vrain.citcom-vrain-dataspace.eu/realms/provider"
   DS_USERNAME: "machine1"
