@@ -13,7 +13,8 @@ COPY server.py .
 COPY services/ services/
 COPY static/ static/
 
-RUN useradd --uid 10001 --no-create-home app
+# gunicorn writes its control socket in the home directory
+RUN useradd --uid 10001 --create-home app
 USER 10001
 
 EXPOSE 5000
