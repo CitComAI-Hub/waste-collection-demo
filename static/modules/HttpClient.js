@@ -3,9 +3,9 @@ export class HttpClient {
 
     async get(path, params) {
 
-        // Build URL using current origin
-        const baseURL = window.location.origin;
-        const url = new URL(path, baseURL);
+        // Build URL relative to the page, so the app also works under a path
+        // prefix (e.g. behind the data space gateway at /waste-collection/)
+        const url = new URL(path, document.baseURI);
 
         const searchParams = new URLSearchParams(params);
 
